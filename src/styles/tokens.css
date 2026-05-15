@@ -1,0 +1,12 @@
+:root {
+  --page-bg: #fafaf8;
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-strong: rgba(255, 255, 255, 0.86);
+  --text: #2b2b2b;
+  --text-soft: #444444;
+  --muted: #8a8a8a;
+  --muted-light: #a0a0a0;
+  --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+  --shadow-float: 0 24px 54px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}

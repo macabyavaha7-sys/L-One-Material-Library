@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.vite/
+
+*.log
+dev-server*.log
+
+public/data/assets.json
+
+*.local
+.env
+.env.*
+!.env.example
