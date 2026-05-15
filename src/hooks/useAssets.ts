@@ -13,7 +13,7 @@ export function useAssets() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`/data/assets.json?t=${Date.now()}`, {
+        const response = await fetch(`${import.meta.env.BASE_URL}data/assets.json?t=${Date.now()}`, {
           cache: "no-store"
         });
         if (!response.ok) {

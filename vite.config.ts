@@ -40,6 +40,7 @@ function parseRange(rangeHeader: string | undefined, size: number) {
 }
 
 export default defineConfig({
+  base: process.env.GITHUB_PAGES ? "/L-One-Material-Library/" : "/",
   plugins: [
     react(),
     {
