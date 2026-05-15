@@ -36,6 +36,23 @@ D:\动画素材库
 npm run rescan
 ```
 
+## 同步到 Cloudflare R2
+
+线上 GitHub Pages 不能读取本机 `D:\动画素材库`。如果要让公开网址显示真实素材，需要把素材同步到 Cloudflare R2：
+
+1. 在 Cloudflare 控制台启用 R2。
+2. 创建或使用 bucket：`l-one-material-library`。
+3. 开启 bucket 的公开 `r2.dev` 访问。
+4. 创建 R2 API Token，并保存 `Access Key ID` 和 `Secret Access Key`。
+5. 复制 `.env.example` 为 `.env.local`，填入 Cloudflare/R2 配置。
+6. 运行：
+
+```bash
+npm run sync:r2
+```
+
+这个命令会扫描本地素材、上传到 R2，并生成线上用的 `data/assets.json` 与本地开发用的 `public/data/assets.json`。
+
 扫描完成后会生成：
 
 ```text
