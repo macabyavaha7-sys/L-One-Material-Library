@@ -53,6 +53,27 @@ npm run sync:r2
 
 这个命令会扫描本地素材、上传到 R2，并生成线上用的 `data/assets.json` 与本地开发用的 `public/data/assets.json`。
 
+## 同步到 Hugging Face Dataset
+
+如果无法启用 Cloudflare R2，可以用公开 Hugging Face Dataset 存放展示素材：
+
+1. 创建公开 Dataset：`macabyavaha7/L-One-Material-Library-assets`。
+2. 在 Hugging Face 创建 write token。
+3. 复制 `.env.example` 为 `.env.local`，填入：
+
+```env
+HF_TOKEN=hf_xxx
+HF_DATASET_REPO=macabyavaha7/L-One-Material-Library-assets
+```
+
+4. 运行：
+
+```bash
+npm run sync:hf
+```
+
+同步完成后提交 `data/assets.json` 并推送 GitHub，公开网页即可读取 Hugging Face 上的素材 URL。
+
 扫描完成后会生成：
 
 ```text
