@@ -74,6 +74,24 @@ npm run sync:hf
 
 同步完成后提交 `data/assets.json` 并推送 GitHub，公开网页即可读取 Hugging Face 上的素材 URL。
 
+## 上传后台
+
+公开网站顶部有“上传”入口，指向：
+
+```text
+https://huggingface.co/spaces/macabyavaha7/L-One-Material-Library-uploader
+```
+
+上传限制：
+
+- 支持 `mp4 / mov / webm / gif / jpg / png / webp`
+- 单文件不超过 `100MB`
+- 视频/GIF 不超过 `30` 秒
+- 自动生成 `thumbnail.webp` 和 `preview.webm`
+- 上传成功后自动更新 Hugging Face Dataset 的 `data/assets.json`
+
+上传口令存放在本机 `.env.local` 和 Hugging Face Space secret，不提交到 GitHub。
+
 扫描完成后会生成：
 
 ```text

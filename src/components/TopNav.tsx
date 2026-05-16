@@ -26,7 +26,17 @@ function TopNav({
         currentCategory={currentCategory}
         onCategoryChange={onCategoryChange}
       />
-      <SearchBox value={searchQuery} onChange={onSearchChange} />
+      <div className="nav-actions">
+        <a
+          className="upload-link"
+          href="https://huggingface.co/spaces/macabyavaha7/L-One-Material-Library-uploader"
+          target="_blank"
+          rel="noreferrer"
+        >
+          上传
+        </a>
+        <SearchBox value={searchQuery} onChange={onSearchChange} />
+      </div>
     </header>
   );
 }

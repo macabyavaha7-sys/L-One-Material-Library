@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import type { AssetItem } from "../types/asset";
 
+const CLOUD_MANIFEST_URL =
+  "https://huggingface.co/datasets/macabyavaha7/L-One-Material-Library-assets/resolve/main/data/assets.json";
+
 export function useAssets() {
   const [assets, setAssets] = useState<AssetItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -13,7 +16,10 @@ export function useAssets() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${import.meta.env.BASE_URL}data/assets.json?t=${Date.now()}`, {
+        const manifestUrl = window.location.hostname.endsWith("github.io")
+          ? CLOUD_MANIFEST_URL
+          : `${import.meta.env.BASE_URL}data/assets.json`;
+        const response = await fetch(`${manifestUrl}?t=${Date.now()}`, {
           cache: "no-store"
         });
         if (!response.ok) {

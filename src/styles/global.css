@@ -175,6 +175,33 @@ a {
   transition: width 240ms var(--ease), background 240ms var(--ease);
 }
 
+.nav-actions {
+  justify-self: end;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.upload-link {
+  display: inline-flex;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 13px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: var(--shadow-soft);
+  color: #383838;
+  font-size: 14px;
+  transition: background 200ms var(--ease), color 200ms var(--ease);
+}
+
+.upload-link:hover {
+  background: rgba(255, 255, 255, 0.9);
+  color: #171717;
+}
+
 .search-box:hover,
 .search-box:focus-within {
   width: clamp(240px, 26vw, 310px);
