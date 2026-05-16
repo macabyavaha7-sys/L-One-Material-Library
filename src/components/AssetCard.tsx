@@ -16,9 +16,10 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
   const [volume, setVolume] = useState(0.6);
   const [isFavorite, setIsFavorite] = useState(false);
 
-  const previewSource = asset.previewGif || asset.image || "";
+  const previewSource = asset.thumbnail || asset.previewGif || asset.image || "";
   const downloadSource = getDownloadSource(asset);
-  const shouldShowVideo = Boolean(asset.video && (isHovered || !previewSource));
+  const hoverVideoSource = asset.previewVideo || asset.video;
+  const shouldShowVideo = Boolean(hoverVideoSource && (isHovered || !previewSource));
 
   useEffect(() => {
     const video = videoRef.current;
@@ -63,7 +64,7 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
             <video
               ref={videoRef}
               className="asset-media"
-              src={asset.video}
+              src={hoverVideoSource}
               muted={isMuted}
               loop
               playsInline

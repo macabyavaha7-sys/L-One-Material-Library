@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
 const dotenv = require("dotenv");
 
@@ -10,6 +11,7 @@ const SOURCE_ROOT = process.env.L_ONE_ASSET_ROOT || "D:\\动画素材库";
 const HF_DATASET_REPO = process.env.HF_DATASET_REPO || "macabyavaha7/L-One-Material-Library-assets";
 const PUBLIC_DATA_FILE = path.resolve(__dirname, "../public/data/assets.json");
 const PAGES_DATA_FILE = path.resolve(__dirname, "../data/assets.json");
+const GENERATED_ROOT = path.resolve(__dirname, "../.cache/hf-optimized");
 const BATCH_SIZE = Number(process.env.HF_UPLOAD_BATCH_SIZE || 20);
 
 const previewExtensions = new Set([".gif"]);
@@ -48,6 +50,11 @@ function walk(dir, files = []) {
 
 function toRepoPath(relativeFilePath) {
   return `media/${relativeFilePath.split(path.sep).join("/")}`;
+}
+
+function toOptimizedRepoPath(relativeDirectory, baseName, suffix) {
+  const directory = relativeDirectory && relativeDirectory !== "." ? `${relativeDirectory.split(path.sep).join("/")}/` : "";
+  return `optimized/${directory}${baseName}${suffix}`;
 }
 
 function toHfUrl(repoPath) {
@@ -111,21 +118,142 @@ function groupFiles(files) {
   return groups;
 }
 
-function createManifest(groups) {
+function shouldRegenerate(sourcePath, outputPath) {
+  if (!fs.existsSync(outputPath)) return true;
+  return fs.statSync(outputPath).mtimeMs < fs.statSync(sourcePath).mtimeMs;
+}
+
+function generatedFileItem(localPath, repoPath, sourceFile) {
+  const stats = fs.statSync(localPath);
+  return {
+    absolutePath: localPath,
+    relativeFilePath: repoPath,
+    relativeDirectory: sourceFile.relativeDirectory,
+    baseName: sourceFile.baseName,
+    fileName: path.basename(localPath),
+    ext: path.extname(localPath).toLowerCase(),
+    repoPath,
+    publicUrl: toHfUrl(repoPath),
+    folderPath: path.dirname(localPath),
+    createdAt: stats.birthtime.toISOString(),
+    updatedAt: stats.mtime.toISOString()
+  };
+}
+
+function generateOptimizedFiles(groups) {
+  fs.mkdirSync(GENERATED_ROOT, { recursive: true });
+  const optimizedByGroup = new Map();
+  const generatedFiles = [];
+
+  for (const [groupKey, group] of groups.entries()) {
+    const gif = pickFirstByExtension(group, previewExtensions);
+    const video = pickFirstByExtension(group, videoExtensions);
+    const image = pickFirstByExtension(group, imageExtensions);
+    const source = video || gif || image || group[0];
+    const relativeDirectory = source.relativeDirectory === "." ? "" : source.relativeDirectory;
+    const outputDirectory = path.join(GENERATED_ROOT, relativeDirectory);
+    fs.mkdirSync(outputDirectory, { recursive: true });
+
+    const thumbnailPath = path.join(outputDirectory, `${source.baseName}.thumb.webp`);
+    const thumbnailRepoPath = toOptimizedRepoPath(source.relativeDirectory, source.baseName, ".thumb.webp");
+
+    if (shouldRegenerate(source.absolutePath, thumbnailPath)) {
+      console.log(`[optimize] thumbnail ${thumbnailRepoPath}`);
+      execFileSync(
+        "ffmpeg",
+        [
+          "-y",
+          "-hide_banner",
+          "-loglevel",
+          "error",
+          "-i",
+          source.absolutePath,
+          "-vf",
+          "scale=480:480:force_original_aspect_ratio=increase,crop=480:480",
+          "-frames:v",
+          "1",
+          "-compression_level",
+          "6",
+          "-quality",
+          "62",
+          thumbnailPath
+        ],
+        { stdio: "ignore" }
+      );
+    }
+
+    const thumbnail = generatedFileItem(thumbnailPath, thumbnailRepoPath, source);
+    generatedFiles.push(thumbnail);
+
+    let previewVideo;
+    const animatedSource = video || gif;
+    if (animatedSource) {
+      const previewPath = path.join(outputDirectory, `${source.baseName}.preview.webm`);
+      const previewRepoPath = toOptimizedRepoPath(source.relativeDirectory, source.baseName, ".preview.webm");
+
+      if (shouldRegenerate(animatedSource.absolutePath, previewPath)) {
+        console.log(`[optimize] preview ${previewRepoPath}`);
+        execFileSync(
+          "ffmpeg",
+          [
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-t",
+            "4",
+            "-i",
+            animatedSource.absolutePath,
+            "-vf",
+            "scale=640:-2:force_original_aspect_ratio=decrease,fps=15",
+            "-an",
+            "-c:v",
+            "libvpx-vp9",
+            "-b:v",
+            "0",
+            "-crf",
+            "42",
+            "-deadline",
+            "good",
+            "-row-mt",
+            "1",
+            previewPath
+          ],
+          { stdio: "ignore" }
+        );
+      }
+
+      previewVideo = generatedFileItem(previewPath, previewRepoPath, animatedSource);
+      generatedFiles.push(previewVideo);
+    }
+
+    optimizedByGroup.set(groupKey, {
+      thumbnail,
+      previewVideo
+    });
+  }
+
+  return { optimizedByGroup, generatedFiles };
+}
+
+function createManifest(groups, optimizedByGroup = new Map()) {
   const usedIds = new Set();
-  return [...groups.values()]
-    .map((group) => {
+  return [...groups.entries()]
+    .map(([groupKey, group]) => {
       const gif = pickFirstByExtension(group, previewExtensions);
       const video = pickFirstByExtension(group, videoExtensions);
       const image = pickFirstByExtension(group, imageExtensions);
       const primary = video || gif || image || group[0];
       const fileTypes = [...new Set(group.map((file) => file.ext.replace(".", "")))].sort();
+      const optimized = optimizedByGroup.get(groupKey);
 
       return {
         id: makeUniqueId(primary.baseName, usedIds),
         title: primary.baseName,
         category: getCategory(primary.relativeDirectory),
         tags: [],
+        thumbnail: optimized?.thumbnail?.publicUrl,
+        previewVideo: optimized?.previewVideo?.publicUrl,
         previewGif: gif ? gif.publicUrl : undefined,
         video: video ? video.publicUrl : undefined,
         image: image ? image.publicUrl : undefined,
@@ -183,9 +311,10 @@ async function main() {
   const files = walk(SOURCE_ROOT);
   const groups = groupFiles(files);
   const allFiles = [...groups.values()].flat();
-  const manifest = createManifest(groups);
+  const { optimizedByGroup, generatedFiles } = generateOptimizedFiles(groups);
+  const manifest = createManifest(groups, optimizedByGroup);
 
-  await uploadBatches(allFiles);
+  await uploadBatches([...generatedFiles, ...allFiles]);
 
   for (const outputFile of [PUBLIC_DATA_FILE, PAGES_DATA_FILE]) {
     fs.mkdirSync(path.dirname(outputFile), { recursive: true });
@@ -193,7 +322,8 @@ async function main() {
   }
 
   console.log(`[sync-hf] Source: ${SOURCE_ROOT}`);
-  console.log(`[sync-hf] Uploaded files: ${allFiles.length}`);
+  console.log(`[sync-hf] Uploaded/checked source files: ${allFiles.length}`);
+  console.log(`[sync-hf] Uploaded/checked optimized files: ${generatedFiles.length}`);
   console.log(`[sync-hf] Assets: ${manifest.length}`);
   console.log(`[sync-hf] Manifest: ${PAGES_DATA_FILE}`);
 }
