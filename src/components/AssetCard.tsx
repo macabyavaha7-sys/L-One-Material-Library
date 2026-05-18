@@ -53,13 +53,13 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
       }}
       onMouseLeave={leavePreview}
     >
-      <button
-        className="asset-click-target"
-        type="button"
-        onClick={() => onSelect(asset)}
-        aria-label={`查看 ${asset.title}`}
-      >
-        <span className="asset-viewport">
+      <div className="asset-viewport">
+        <button
+          className="asset-click-target"
+          type="button"
+          onClick={() => onSelect(asset)}
+          aria-label={`查看 ${asset.title}`}
+        >
           {shouldShowVideo ? (
             <video
               ref={videoRef}
@@ -79,23 +79,23 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
             />
           )}
           <span className="asset-shine" />
-        </span>
-      </button>
+        </button>
 
-      <VideoControls
-        visible={isHovered}
-        isPlaying={isPlaying}
-        isMuted={isMuted}
-        volume={volume}
-        isFavorite={isFavorite}
-        downloadSource={downloadSource}
-        fileName={asset.fileName}
-        onPlayPause={() => setIsPlaying((playing) => !playing)}
-        onMuteToggle={() => setIsMuted((muted) => !muted)}
-        onVolumeChange={setVolume}
-        onFavoriteToggle={() => setIsFavorite((favorite) => !favorite)}
-        onDetails={() => onSelect(asset)}
-      />
+        <VideoControls
+          visible={isHovered}
+          isPlaying={isPlaying}
+          isMuted={isMuted}
+          volume={volume}
+          isFavorite={isFavorite}
+          downloadSource={downloadSource}
+          fileName={asset.fileName}
+          onPlayPause={() => setIsPlaying((playing) => !playing)}
+          onMuteToggle={() => setIsMuted((muted) => !muted)}
+          onVolumeChange={setVolume}
+          onFavoriteToggle={() => setIsFavorite((favorite) => !favorite)}
+          onDetails={() => onSelect(asset)}
+        />
+      </div>
     </article>
   );
 }
