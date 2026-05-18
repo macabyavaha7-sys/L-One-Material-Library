@@ -4,7 +4,8 @@ type CategoryMenuProps = {
   expanded: boolean;
   onCategoryChange: (category: string) => void;
   onToggleExpanded: () => void;
-  onCustomFilter: () => void;
+  onFilterToggle: () => void;
+  filterActiveCount: number;
 };
 
 function CategoryMenu({
@@ -13,7 +14,8 @@ function CategoryMenu({
   expanded,
   onCategoryChange,
   onToggleExpanded,
-  onCustomFilter
+  onFilterToggle,
+  filterActiveCount
 }: CategoryMenuProps) {
   return (
     <div className={`category-toolbar ${expanded ? "is-expanded" : ""}`}>
@@ -32,9 +34,9 @@ function CategoryMenu({
           </button>
         ))}
       </nav>
-      <button className="filter-button" type="button" onClick={onCustomFilter}>
+      <button className={`filter-button ${filterActiveCount ? "is-active" : ""}`} type="button" onClick={onFilterToggle}>
         <FilterIcon />
-        筛选
+        筛选{filterActiveCount ? ` ${filterActiveCount}` : ""}
       </button>
     </div>
   );

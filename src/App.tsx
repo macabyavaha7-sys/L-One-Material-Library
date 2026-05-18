@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import AssetDetailModal from "./components/AssetDetailModal";
 import AssetGrid from "./components/AssetGrid";
 import CategoryMenu from "./components/CategoryMenu";
+import FilterPanel, { type FilterGroup } from "./components/FilterPanel";
 import LibraryFooter, { type PreviewSize, type ViewMode } from "./components/LibraryFooter";
 import SearchBox from "./components/SearchBox";
 import TopNav from "./components/TopNav";
@@ -22,6 +23,8 @@ function App() {
   const [route, setRoute] = useState(() => getRouteFromLocation());
   const [selectedAsset, setSelectedAsset] = useState<AssetItem | null>(null);
   const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("large");
   const [previewSize, setPreviewSize] = useState<PreviewSize>("medium");
 
@@ -40,9 +43,25 @@ function App() {
     return ["全部", ...uniqueCategories.sort((a, b) => a.localeCompare(b, "zh-CN"))];
   }, [assets]);
 
+  const filterGroups = useMemo<FilterGroup[]>(() => {
+    const categoryOptions = [...new Set(assets.map((asset) => asset.category || "未分类"))]
+      .sort((a, b) => a.localeCompare(b, "zh-CN"));
+    const tagOptions = [...new Set(assets.flatMap((asset) => asset.tags || []))]
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, "zh-CN"));
+    const typeOptions = [...new Set(assets.flatMap((asset) => asset.fileTypes || []).map((type) => type.toUpperCase()))]
+      .sort((a, b) => a.localeCompare(b, "zh-CN"));
+
+    return [
+      { title: "分类", options: categoryOptions },
+      { title: "关键词", options: tagOptions },
+      { title: "文件类型", options: typeOptions }
+    ].filter((group) => group.options.length);
+  }, [assets]);
+
   const selectedCategory = route.type === "category" ? route.value : "全部";
   const selectedTag = route.type === "tag" ? route.value : "";
-  const filteredAssets = useFilteredAssets(assets, selectedCategory, selectedTag, searchQuery);
+  const filteredAssets = useFilteredAssets(assets, selectedCategory, selectedTag, selectedFilters, searchQuery);
 
   const handleCategoryChange = (category: string) => {
     const normalized = normalizeCategory(category);
@@ -58,11 +77,12 @@ function App() {
     window.history.pushState({}, "", tagToPath(normalized));
   };
 
-  const handleCustomFilter = () => {
-    const value = window.prompt("输入要筛选的分类名称");
-    const normalized = normalizeCategory(value || "");
-    if (normalized === "全部") return;
-    handleCategoryChange(normalized);
+  const handleToggleFilter = (filter: string) => {
+    setSelectedFilters((current) =>
+      current.includes(filter)
+        ? current.filter((item) => item !== filter)
+        : [...current, filter]
+    );
   };
 
   return (
@@ -77,7 +97,15 @@ function App() {
           expanded={isCategoryExpanded}
           onCategoryChange={handleCategoryChange}
           onToggleExpanded={() => setIsCategoryExpanded((expanded) => !expanded)}
-          onCustomFilter={handleCustomFilter}
+          onFilterToggle={() => setIsFilterOpen((open) => !open)}
+          filterActiveCount={selectedFilters.length}
+        />
+        <FilterPanel
+          open={isFilterOpen}
+          groups={filterGroups}
+          selectedFilters={selectedFilters}
+          onToggleFilter={handleToggleFilter}
+          onClear={() => setSelectedFilters([])}
         />
         <AssetGrid
           assets={filteredAssets}
