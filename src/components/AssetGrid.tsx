@@ -1,5 +1,6 @@
 import type { AssetItem } from "../types/asset";
 import AssetCard from "./AssetCard";
+import type { PreviewSize, ViewMode } from "./LibraryFooter";
 
 type AssetGridProps = {
   assets: AssetItem[];
@@ -8,6 +9,8 @@ type AssetGridProps = {
   currentCategory: string;
   currentTag: string;
   searchQuery: string;
+  viewMode: ViewMode;
+  previewSize: PreviewSize;
   onAssetSelect: (asset: AssetItem) => void;
 };
 
@@ -18,6 +21,8 @@ function AssetGrid({
   currentCategory,
   currentTag,
   searchQuery,
+  viewMode,
+  previewSize,
   onAssetSelect
 }: AssetGridProps) {
   if (loading) {
@@ -70,13 +75,37 @@ function AssetGrid({
     <section className="asset-section">
       {currentCategory !== "全部" && <h1 className="section-title">{currentCategory}</h1>}
       {currentTag && <h1 className="section-title">#{currentTag}</h1>}
-      <div className="asset-grid">
-        {assets.map((asset) => (
-          <AssetCard key={asset.id} asset={asset} onSelect={onAssetSelect} />
-        ))}
-      </div>
+      {viewMode === "folders" ? (
+        <div className={`folder-grid size-${previewSize}`}>
+          {Object.entries(groupByCategory(assets)).map(([category, categoryAssets]) => (
+            <section className="folder-group" key={category}>
+              <h2>{category}</h2>
+              <div className="asset-grid">
+                {categoryAssets.map((asset) => (
+                  <AssetCard key={asset.id} asset={asset} onSelect={onAssetSelect} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <div className={`asset-grid view-${viewMode} size-${previewSize}`}>
+          {assets.map((asset) => (
+            <AssetCard key={asset.id} asset={asset} onSelect={onAssetSelect} />
+          ))}
+        </div>
+      )}
     </section>
   );
+}
+
+function groupByCategory(assets: AssetItem[]) {
+  return assets.reduce<Record<string, AssetItem[]>>((groups, asset) => {
+    const category = asset.category || "未分类";
+    groups[category] = groups[category] || [];
+    groups[category].push(asset);
+    return groups;
+  }, {});
 }
 
 export default AssetGrid;

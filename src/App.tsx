@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import AssetDetailModal from "./components/AssetDetailModal";
 import AssetGrid from "./components/AssetGrid";
+import CategoryMenu from "./components/CategoryMenu";
+import LibraryFooter, { type PreviewSize, type ViewMode } from "./components/LibraryFooter";
+import SearchBox from "./components/SearchBox";
 import TopNav from "./components/TopNav";
 import { useAssets } from "./hooks/useAssets";
 import { useFilteredAssets } from "./hooks/useFilteredAssets";
@@ -18,6 +21,9 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [route, setRoute] = useState(() => getRouteFromLocation());
   const [selectedAsset, setSelectedAsset] = useState<AssetItem | null>(null);
+  const [isCategoryExpanded, setIsCategoryExpanded] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("large");
+  const [previewSize, setPreviewSize] = useState<PreviewSize>("medium");
 
   useEffect(() => {
     const onPopState = () => setRoute(getRouteFromLocation());
@@ -52,17 +58,27 @@ function App() {
     window.history.pushState({}, "", tagToPath(normalized));
   };
 
+  const handleCustomFilter = () => {
+    const value = window.prompt("输入要筛选的分类名称");
+    const normalized = normalizeCategory(value || "");
+    if (normalized === "全部") return;
+    handleCategoryChange(normalized);
+  };
+
   return (
     <div className="app-shell">
-      <TopNav
-        categories={categories}
-        currentCategory={selectedCategory}
-        searchQuery={searchQuery}
-        onCategoryChange={handleCategoryChange}
-        onSearchChange={setSearchQuery}
-      />
+      <TopNav onCategoryChange={handleCategoryChange} />
 
       <main className="page-main">
+        <SearchBox value={searchQuery} onChange={setSearchQuery} />
+        <CategoryMenu
+          categories={categories}
+          currentCategory={selectedCategory}
+          expanded={isCategoryExpanded}
+          onCategoryChange={handleCategoryChange}
+          onToggleExpanded={() => setIsCategoryExpanded((expanded) => !expanded)}
+          onCustomFilter={handleCustomFilter}
+        />
         <AssetGrid
           assets={filteredAssets}
           loading={loading}
@@ -70,9 +86,19 @@ function App() {
           currentCategory={selectedCategory}
           currentTag={selectedTag}
           searchQuery={searchQuery}
+          viewMode={viewMode}
+          previewSize={previewSize}
           onAssetSelect={setSelectedAsset}
         />
       </main>
+
+      <LibraryFooter
+        total={filteredAssets.length}
+        viewMode={viewMode}
+        previewSize={previewSize}
+        onViewModeChange={setViewMode}
+        onPreviewSizeChange={setPreviewSize}
+      />
 
       {selectedAsset && (
         <AssetDetailModal

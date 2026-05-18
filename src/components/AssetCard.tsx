@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AssetItem } from "../types/asset";
-import { getDownloadSource, getPreviewSource } from "../utils/fileName";
+import { formatTypes, getDownloadSource, getPreviewSource } from "../utils/fileName";
 import VideoControls from "./VideoControls";
 
 type AssetCardProps = {
@@ -107,6 +107,10 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
           onFavoriteToggle={() => setIsFavorite((favorite) => !favorite)}
           onDetails={() => onSelect(asset)}
         />
+      </div>
+      <div className="asset-caption">
+        <strong>{asset.title}</strong>
+        <span>{asset.category} · {formatTypes(asset.fileTypes)}</span>
       </div>
     </article>
   );
