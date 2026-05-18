@@ -15,7 +15,6 @@ from huggingface_hub import HfApi
 
 
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 DATASET_REPO = os.environ.get("HF_DATASET_REPO", "macabyavaha7/L-One-Material-Library-assets")
 MANIFEST_PATH = "data/assets.json"
 MAX_BYTES = 100 * 1024 * 1024
@@ -23,7 +22,6 @@ MAX_DURATION = 30.0
 SUPPORTED_EXTENSIONS = {".mp4", ".mov", ".webm", ".gif", ".jpg", ".jpeg", ".png", ".webp"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm", ".gif"}
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
-
 
 api = HfApi()
 
@@ -39,7 +37,7 @@ def public_url(repo_path: str) -> str:
 
 
 def safe_segment(value: str, fallback: str) -> str:
-    cleaned = re.sub(r"[\\/:*?\"<>|#%{}^~`\\[\\]]+", "-", (value or "").strip())
+    cleaned = re.sub(r"[\\/:*?\"<>|#%{}^~`\[\]]+", "-", (value or "").strip())
     cleaned = re.sub(r"\s+", "-", cleaned).strip("-._ ")
     return cleaned[:80] or fallback
 
@@ -78,8 +76,7 @@ def probe_media(file_path: Path):
 
 
 def load_manifest():
-    url = public_url(MANIFEST_PATH)
-    response = requests.get(url, timeout=30)
+    response = requests.get(public_url(MANIFEST_PATH), timeout=30)
     if response.status_code == 404:
         return []
     response.raise_for_status()
@@ -105,13 +102,9 @@ def write_manifest(manifest):
         upload_file(manifest_file, MANIFEST_PATH, "Update L-One asset manifest")
 
 
-def validate_upload(password, file_path, category):
+def validate_upload(file_path, category):
     if not HF_TOKEN:
         raise gr.Error("服务端缺少 HF_TOKEN，请检查 Space secrets。")
-    if not ADMIN_PASSWORD:
-        raise gr.Error("服务端缺少 ADMIN_PASSWORD，请检查 Space secrets。")
-    if password != ADMIN_PASSWORD:
-        raise gr.Error("上传口令错误。")
     if not file_path:
         raise gr.Error("请选择一个素材文件。")
 
@@ -131,7 +124,7 @@ def validate_upload(password, file_path, category):
     return source, extension, size, info, safe_segment(category, "未分类")
 
 
-def create_outputs(source: Path, extension: str, asset_id: str, work_dir: Path):
+def create_outputs(source: Path, extension: str, work_dir: Path):
     original = work_dir / f"original{extension}"
     shutil.copy2(source, original)
 
@@ -193,16 +186,16 @@ def create_outputs(source: Path, extension: str, asset_id: str, work_dir: Path):
     return original, thumbnail, preview
 
 
-def upload_asset(password, file, title, category, tags):
-    source, extension, size, info, category_name = validate_upload(password, file, category)
+def upload_asset(file, title, category, tags):
+    source, extension, size, info, category_name = validate_upload(file, category)
     clean_title = (title or source.stem).strip() or source.stem
     digest = hashlib.sha1(f"{source.name}-{source.stat().st_size}-{datetime.now().isoformat()}".encode("utf-8")).hexdigest()[:10]
     asset_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{digest}"
-    tag_list = [tag.strip() for tag in re.split(r"[,，\\s]+", tags or "") if tag.strip()]
+    tag_list = [tag.strip() for tag in re.split(r"[,，\s]+", tags or "") if tag.strip()]
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         work_dir = Path(tmp_dir)
-        original, thumbnail, preview = create_outputs(source, extension, asset_id, work_dir)
+        original, thumbnail, preview = create_outputs(source, extension, work_dir)
 
         base_path = f"{category_name}/{asset_id}"
         original_repo_path = f"media/{base_path}/original{extension}"
@@ -253,17 +246,15 @@ def upload_asset(password, file, title, category, tags):
 
 with gr.Blocks(title="L-One 素材库上传") as demo:
     gr.Markdown("# L-One 素材库上传")
-    gr.Markdown("限制：视频/GIF 不超过 30 秒，单文件不超过 100MB。系统会自动生成 WebP 缩略图和 WebM hover 预览。")
-    with gr.Row():
-        password = gr.Textbox(label="上传口令", type="password")
-        category = gr.Textbox(label="分类", value="未分类")
+    gr.Markdown("登录 Hugging Face 后可上传。视频/GIF 不超过 30 秒，单文件不超过 100MB。系统会自动生成 WebP 缩略图和 WebM hover 预览。")
+    category = gr.Textbox(label="分类", value="未分类")
     file = gr.File(label="素材文件", file_types=list(SUPPORTED_EXTENSIONS), type="filepath")
     title = gr.Textbox(label="标题（可选，不填则使用文件名）")
     tags = gr.Textbox(label="标签（可选，用逗号或空格分隔）")
     submit = gr.Button("上传并自动入库", variant="primary")
     output = gr.Textbox(label="处理结果", lines=8)
 
-    submit.click(upload_asset, inputs=[password, file, title, category, tags], outputs=output)
+    submit.click(upload_asset, inputs=[file, title, category, tags], outputs=output)
 
 
 if __name__ == "__main__":
