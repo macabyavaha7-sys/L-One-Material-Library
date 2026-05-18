@@ -25,22 +25,24 @@ VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm", ".gif"}
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 UPLOAD_GATE_OPTIONS = ["请选择上传口令", "内部沟通", "对外展示", "千万别外传"]
 UPLOAD_GATE_ACCEPTED = "内部沟通"
-PRESET_KEYWORDS = [
+BASIC_CATEGORIES = [
     "写实",
-    "动画",
-    "真人奇幻",
+    "奇幻电影",
     "魔法电影",
     "魔法效果",
+    "城市",
+    "雾气",
+    "光影",
+    "角色",
+    "夜景",
+    "室内",
+    "战争",
+    "神奇动物",
     "人物动作",
-    "场景氛围",
-    "城市建筑",
     "自然风光",
-    "动物生物",
     "机械载具",
     "镜头转场",
-    "背景纹理",
     "广告参考",
-    "特效参考",
     "待整理",
 ]
 MAX_TAGS = 10
@@ -149,9 +151,11 @@ def validate_upload(file_path, category, upload_gate):
     return source, extension, size, info, safe_segment(category, "未分类")
 
 
-def normalize_tags(preset_tags, custom_tags):
+def normalize_tags(category_name, custom_tags):
     tags = []
-    for tag in list(preset_tags or []) + [item for item in re.split(r"[,，\s]+", custom_tags or "") if item.strip()]:
+    category_tag = "" if category_name == "未分类" else category_name
+    raw_tags = [category_tag] + [item for item in re.split(r"[,，\s]+", custom_tags or "") if item.strip()]
+    for tag in raw_tags:
         cleaned = re.sub(r"[#\\/:*?\"<>|%{}^~`\[\]]+", "", tag.strip())
         if not cleaned:
             continue
@@ -228,12 +232,12 @@ def create_outputs(source: Path, extension: str, work_dir: Path):
     return original, thumbnail, preview
 
 
-def process_upload_asset(upload_gate, file, title, category, preset_tags, custom_tags):
+def process_upload_asset(upload_gate, file, title, category, custom_tags):
     source, extension, size, info, category_name = validate_upload(file, category, upload_gate)
     clean_title = (title or source.stem).strip() or source.stem
     digest = hashlib.sha1(f"{source.name}-{source.stat().st_size}-{datetime.now().isoformat()}".encode("utf-8")).hexdigest()[:10]
     asset_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{digest}"
-    tag_list = normalize_tags(preset_tags, custom_tags)
+    tag_list = normalize_tags(category_name, custom_tags)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         work_dir = Path(tmp_dir)
@@ -287,9 +291,9 @@ def process_upload_asset(upload_gate, file, title, category, preset_tags, custom
     )
 
 
-def upload_asset(upload_gate, file, title, category, preset_tags, custom_tags):
+def upload_asset(upload_gate, file, title, category, custom_tags):
     try:
-        result = process_upload_asset(upload_gate, file, title, category, preset_tags, custom_tags)
+        result = process_upload_asset(upload_gate, file, title, category, custom_tags)
         gr.Info("上传完成")
         return result
     except gr.Error:
@@ -298,56 +302,100 @@ def upload_asset(upload_gate, file, title, category, preset_tags, custom_tags):
         raise gr.Error(f"上传失败：{error}") from error
 
 
-def home_button_html():
+def header_html():
     return (
-        f'<a class="home-link" href="{MAIN_SITE_URL}" target="_blank" rel="noreferrer">'
-        "返回主页"
-        "</a>"
+        '<div class="upload-header">'
+        '<div class="upload-heading">'
+        "<h1>L-One 素材库上传</h1>"
+        "<p>视频/GIF 不超过 30 秒，单文件不超过 100MB，系统会自动生成 WebP 缩略图和 WebM hover 预览。</p>"
+        "</div>"
+        f'<a class="home-link" href="{MAIN_SITE_URL}" target="_blank" rel="noreferrer">⌂ 返回主页</a>'
+        "</div>"
     )
 
 
 custom_css = """
-.home-link {
+.upload-header {
   display: flex;
-  min-height: 42px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+.upload-heading h1 {
+  margin: 0 0 14px;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 700;
+}
+.upload-heading p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
+}
+.home-link {
+  display: inline-flex;
+  min-height: 36px;
   align-items: center;
   justify-content: center;
+  margin-top: 8px;
+  padding: 0 14px;
+  border: 1px solid #ff6a00;
   border-radius: 6px;
-  background: #ff6a00;
-  color: #ffffff !important;
+  background: rgba(255, 106, 0, 0.08);
+  color: #ff6a00 !important;
   font-weight: 600;
+  font-size: 14px;
   text-decoration: none !important;
+  white-space: nowrap;
 }
 .home-link:hover {
-  background: #f45f00;
+  background: rgba(255, 106, 0, 0.16);
+}
+.category-chip-row {
+  gap: 10px !important;
+  margin-top: -4px;
+  margin-bottom: 12px;
+}
+.category-chip {
+  flex: 0 0 auto !important;
+  min-width: auto !important;
+}
+.category-chip button,
+.category-chip {
+  border-radius: 7px !important;
+}
+@media (max-width: 760px) {
+  .upload-header {
+    display: block;
+  }
+  .home-link {
+    margin-top: 14px;
+  }
 }
 """
 
 
 with gr.Blocks(title="L-One 素材库上传", css=custom_css) as demo:
-    gr.Markdown("# L-One 素材库上传")
-    gr.Markdown("视频/GIF 不超过 30 秒，单文件不超过 100MB。系统会自动生成 WebP 缩略图和 WebM hover 预览。")
+    gr.HTML(header_html())
     upload_gate = gr.Dropdown(
         label="上传口令",
         choices=UPLOAD_GATE_OPTIONS,
         value="请选择上传口令",
         allow_custom_value=False,
     )
-    category = gr.Textbox(label="分类", value="未分类")
     file = gr.File(label="素材文件", file_types=list(SUPPORTED_EXTENSIONS), type="filepath")
     title = gr.Textbox(label="标题（可选，不填则使用文件名）")
-    preset_tags = gr.Dropdown(
-        label="分类关键词（可多选，最多 10 个）",
-        choices=PRESET_KEYWORDS,
-        multiselect=True,
-        value=[],
-    )
+    category = gr.Textbox(label="分类（可选，点击下方标签快速填写）", placeholder="输入或选择分类（例如：魔法电影）")
+    with gr.Row(elem_classes="category-chip-row"):
+        for basic_category in BASIC_CATEGORIES:
+            button = gr.Button(basic_category, size="sm", elem_classes="category-chip")
+            button.click(lambda value=basic_category: value, inputs=[], outputs=category)
     custom_tags = gr.Textbox(label="自定义关键词（可选，逗号或空格分隔，单个不超过 8 个字）")
     submit = gr.Button("上传并自动入库", variant="primary")
     output = gr.Textbox(label="处理结果", lines=8)
-    gr.HTML(home_button_html())
 
-    submit.click(upload_asset, inputs=[upload_gate, file, title, category, preset_tags, custom_tags], outputs=output)
+    submit.click(upload_asset, inputs=[upload_gate, file, title, category, custom_tags], outputs=output)
 
 
 if __name__ == "__main__":
