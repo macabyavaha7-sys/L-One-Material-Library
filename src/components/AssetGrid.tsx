@@ -6,6 +6,7 @@ type AssetGridProps = {
   loading: boolean;
   error: string | null;
   currentCategory: string;
+  currentTag: string;
   searchQuery: string;
   onAssetSelect: (asset: AssetItem) => void;
 };
@@ -15,6 +16,7 @@ function AssetGrid({
   loading,
   error,
   currentCategory,
+  currentTag,
   searchQuery,
   onAssetSelect
 }: AssetGridProps) {
@@ -41,10 +43,11 @@ function AssetGrid({
   }
 
   if (!assets.length) {
-    const hasFilter = currentCategory !== "全部" || searchQuery.trim();
+    const hasFilter = currentCategory !== "全部" || currentTag || searchQuery.trim();
     return (
       <section className="asset-section">
         {currentCategory !== "全部" && <h1 className="section-title">{currentCategory}</h1>}
+        {currentTag && <h1 className="section-title">#{currentTag}</h1>}
         <div className="empty-state">
           <h1>{hasFilter ? "没有匹配的素材" : "未识别到素材"}</h1>
           <p>
@@ -66,6 +69,7 @@ function AssetGrid({
   return (
     <section className="asset-section">
       {currentCategory !== "全部" && <h1 className="section-title">{currentCategory}</h1>}
+      {currentTag && <h1 className="section-title">#{currentTag}</h1>}
       <div className="asset-grid">
         {assets.map((asset) => (
           <AssetCard key={asset.id} asset={asset} onSelect={onAssetSelect} />

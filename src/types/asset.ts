@@ -12,6 +12,8 @@ export type AssetItem = {
   folderPath: string;
   relativePath: string;
   fileTypes: string[];
+  duration?: number;
+  sizeBytes?: number;
   createdAt?: string;
   updatedAt?: string;
 };

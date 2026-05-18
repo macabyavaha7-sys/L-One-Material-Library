@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>L-One素材库</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      const isGitHubPages = location.hostname.endsWith("github.io");
+
+      if (isGitHubPages) {
+        const base = "/L-One-Material-Library/";
+        const styles = document.createElement("link");
+        styles.rel = "stylesheet";
+        styles.href = `${base}assets/app.css`;
+        document.head.appendChild(styles);
+        await import(`${base}assets/main.js`);
+      } else {
+        await import("/src/main.tsx");
+      }
+    </script>
+  </body>
+</html>

@@ -25,6 +25,26 @@ VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm", ".gif"}
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 UPLOAD_GATE_OPTIONS = ["请选择上传口令", "内部沟通", "对外展示", "千万别外传"]
 UPLOAD_GATE_ACCEPTED = "内部沟通"
+PRESET_KEYWORDS = [
+    "写实",
+    "动画",
+    "真人奇幻",
+    "魔法电影",
+    "魔法效果",
+    "人物动作",
+    "场景氛围",
+    "城市建筑",
+    "自然风光",
+    "动物生物",
+    "机械载具",
+    "镜头转场",
+    "背景纹理",
+    "广告参考",
+    "特效参考",
+    "待整理",
+]
+MAX_TAGS = 10
+MAX_TAG_LENGTH = 8
 
 api = HfApi()
 
@@ -129,6 +149,23 @@ def validate_upload(file_path, category, upload_gate):
     return source, extension, size, info, safe_segment(category, "未分类")
 
 
+def normalize_tags(preset_tags, custom_tags):
+    tags = []
+    for tag in list(preset_tags or []) + [item for item in re.split(r"[,，\s]+", custom_tags or "") if item.strip()]:
+        cleaned = re.sub(r"[#\\/:*?\"<>|%{}^~`\[\]]+", "", tag.strip())
+        if not cleaned:
+            continue
+        if len(cleaned) > MAX_TAG_LENGTH:
+            raise gr.Error(f"关键词“{cleaned}”超过 {MAX_TAG_LENGTH} 个字。")
+        if cleaned not in tags:
+            tags.append(cleaned)
+
+    if len(tags) > MAX_TAGS:
+        raise gr.Error(f"每个素材最多 {MAX_TAGS} 个分类关键词。")
+
+    return tags
+
+
 def create_outputs(source: Path, extension: str, work_dir: Path):
     original = work_dir / f"original{extension}"
     shutil.copy2(source, original)
@@ -191,12 +228,12 @@ def create_outputs(source: Path, extension: str, work_dir: Path):
     return original, thumbnail, preview
 
 
-def process_upload_asset(upload_gate, file, title, category, tags):
+def process_upload_asset(upload_gate, file, title, category, preset_tags, custom_tags):
     source, extension, size, info, category_name = validate_upload(file, category, upload_gate)
     clean_title = (title or source.stem).strip() or source.stem
     digest = hashlib.sha1(f"{source.name}-{source.stat().st_size}-{datetime.now().isoformat()}".encode("utf-8")).hexdigest()[:10]
     asset_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{digest}"
-    tag_list = [tag.strip() for tag in re.split(r"[,，\s]+", tags or "") if tag.strip()]
+    tag_list = normalize_tags(preset_tags, custom_tags)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         work_dir = Path(tmp_dir)
@@ -242,6 +279,7 @@ def process_upload_asset(upload_gate, file, title, category, tags):
     return (
         f"上传成功：{clean_title}\n"
         f"分类：{category_name}\n"
+        f"关键词：{'、'.join(tag_list) if tag_list else '无'}\n"
         f"大小：{size / 1024 / 1024:.1f}MB\n"
         f"时长：{info.get('duration') or 0:.1f}秒\n"
         f"素材 ID：{asset_id}\n"
@@ -249,9 +287,9 @@ def process_upload_asset(upload_gate, file, title, category, tags):
     )
 
 
-def upload_asset(upload_gate, file, title, category, tags):
+def upload_asset(upload_gate, file, title, category, preset_tags, custom_tags):
     try:
-        result = process_upload_asset(upload_gate, file, title, category, tags)
+        result = process_upload_asset(upload_gate, file, title, category, preset_tags, custom_tags)
         gr.Info("上传完成")
         return result
     except gr.Error:
@@ -298,12 +336,18 @@ with gr.Blocks(title="L-One 素材库上传", css=custom_css) as demo:
     category = gr.Textbox(label="分类", value="未分类")
     file = gr.File(label="素材文件", file_types=list(SUPPORTED_EXTENSIONS), type="filepath")
     title = gr.Textbox(label="标题（可选，不填则使用文件名）")
-    tags = gr.Textbox(label="标签（可选，用逗号或空格分隔）")
+    preset_tags = gr.Dropdown(
+        label="分类关键词（可多选，最多 10 个）",
+        choices=PRESET_KEYWORDS,
+        multiselect=True,
+        value=[],
+    )
+    custom_tags = gr.Textbox(label="自定义关键词（可选，逗号或空格分隔，单个不超过 8 个字）")
     submit = gr.Button("上传并自动入库", variant="primary")
     output = gr.Textbox(label="处理结果", lines=8)
     gr.HTML(home_button_html())
 
-    submit.click(upload_asset, inputs=[upload_gate, file, title, category, tags], outputs=output)
+    submit.click(upload_asset, inputs=[upload_gate, file, title, category, preset_tags, custom_tags], outputs=output)
 
 
 if __name__ == "__main__":

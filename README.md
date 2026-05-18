@@ -89,6 +89,8 @@ https://huggingface.co/spaces/macabyavaha7/L-One-Material-Library-uploader
 - 视频/GIF 不超过 `30` 秒
 - 自动生成 `thumbnail.webp` 和 `preview.webm`
 - 上传成功后自动更新 Hugging Face Dataset 的 `data/assets.json`
+- 上传时可选择预设分类关键词，也可填写自定义关键词；单个关键词不超过 `8` 个字，每个素材最多 `10` 个关键词
+- 关键词会在主站详情页显示为可点击标签，并生成 `/tag/关键词` 独立筛选页面
 
 上传后台设置为公开 Space，方便熟人、内部同事和临时合作方使用。上传前需要在“上传口令”下拉菜单中选择正确选项：`内部沟通`；其他选项会被服务端拒绝。
 
