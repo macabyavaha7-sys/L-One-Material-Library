@@ -22,6 +22,8 @@ MAX_DURATION = 30.0
 SUPPORTED_EXTENSIONS = {".mp4", ".mov", ".webm", ".gif", ".jpg", ".jpeg", ".png", ".webp"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm", ".gif"}
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+UPLOAD_GATE_OPTIONS = ["请选择上传口令", "内部沟通", "对外展示", "千万别外传"]
+UPLOAD_GATE_ACCEPTED = "内部沟通"
 
 api = HfApi()
 
@@ -102,9 +104,11 @@ def write_manifest(manifest):
         upload_file(manifest_file, MANIFEST_PATH, "Update L-One asset manifest")
 
 
-def validate_upload(file_path, category):
+def validate_upload(file_path, category, upload_gate):
     if not HF_TOKEN:
         raise gr.Error("服务端缺少 HF_TOKEN，请检查 Space secrets。")
+    if upload_gate != UPLOAD_GATE_ACCEPTED:
+        raise gr.Error("上传口令不正确，请重新选择。")
     if not file_path:
         raise gr.Error("请选择一个素材文件。")
 
@@ -186,8 +190,8 @@ def create_outputs(source: Path, extension: str, work_dir: Path):
     return original, thumbnail, preview
 
 
-def upload_asset(file, title, category, tags):
-    source, extension, size, info, category_name = validate_upload(file, category)
+def upload_asset(upload_gate, file, title, category, tags):
+    source, extension, size, info, category_name = validate_upload(file, category, upload_gate)
     clean_title = (title or source.stem).strip() or source.stem
     digest = hashlib.sha1(f"{source.name}-{source.stat().st_size}-{datetime.now().isoformat()}".encode("utf-8")).hexdigest()[:10]
     asset_id = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{digest}"
@@ -246,7 +250,13 @@ def upload_asset(file, title, category, tags):
 
 with gr.Blocks(title="L-One 素材库上传") as demo:
     gr.Markdown("# L-One 素材库上传")
-    gr.Markdown("登录 Hugging Face 后可上传。视频/GIF 不超过 30 秒，单文件不超过 100MB。系统会自动生成 WebP 缩略图和 WebM hover 预览。")
+    gr.Markdown("视频/GIF 不超过 30 秒，单文件不超过 100MB。系统会自动生成 WebP 缩略图和 WebM hover 预览。")
+    upload_gate = gr.Dropdown(
+        label="上传口令",
+        choices=UPLOAD_GATE_OPTIONS,
+        value="请选择上传口令",
+        allow_custom_value=False,
+    )
     category = gr.Textbox(label="分类", value="未分类")
     file = gr.File(label="素材文件", file_types=list(SUPPORTED_EXTENSIONS), type="filepath")
     title = gr.Textbox(label="标题（可选，不填则使用文件名）")
@@ -254,7 +264,7 @@ with gr.Blocks(title="L-One 素材库上传") as demo:
     submit = gr.Button("上传并自动入库", variant="primary")
     output = gr.Textbox(label="处理结果", lines=8)
 
-    submit.click(upload_asset, inputs=[file, title, category, tags], outputs=output)
+    submit.click(upload_asset, inputs=[upload_gate, file, title, category, tags], outputs=output)
 
 
 if __name__ == "__main__":

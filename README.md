@@ -90,7 +90,7 @@ https://huggingface.co/spaces/macabyavaha7/L-One-Material-Library-uploader
 - 自动生成 `thumbnail.webp` 和 `preview.webm`
 - 上传成功后自动更新 Hugging Face Dataset 的 `data/assets.json`
 
-上传后台设置为 Hugging Face 私有 Space，只允许账号所有者访问；不再需要上传口令。
+上传后台设置为公开 Space，方便熟人、内部同事和临时合作方使用。上传前需要在“上传口令”下拉菜单中选择正确选项：`内部沟通`；其他选项会被服务端拒绝。
 
 扫描完成后会生成：
 
