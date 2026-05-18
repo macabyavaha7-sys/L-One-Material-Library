@@ -22,7 +22,11 @@ function App() {
   useEffect(() => {
     const onPopState = () => setRoute(getRouteFromLocation());
     window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
+    window.addEventListener("hashchange", onPopState);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("hashchange", onPopState);
+    };
   }, []);
 
   const categories = useMemo(() => {

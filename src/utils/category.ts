@@ -8,6 +8,9 @@ function getAppBase() {
 }
 
 function getRoutePathname() {
+  const hashPath = window.location.hash.replace(/^#/, "");
+  if (hashPath.startsWith("/")) return hashPath;
+
   const base = getAppBase();
   const pathname = window.location.pathname;
   return base && pathname.startsWith(base) ? pathname.slice(base.length) || "/" : pathname;
@@ -25,14 +28,14 @@ export function normalizeTag(tag?: string) {
 export function categoryToPath(category: string) {
   const base = getAppBase();
   if (normalizeCategory(category) === "全部") return `${base}/`;
-  return `${base}/category/${encodeURIComponent(category)}`;
+  return `${base}/#/category/${encodeURIComponent(category)}`;
 }
 
 export function tagToPath(tag: string) {
   const base = getAppBase();
   const normalized = normalizeTag(tag);
   if (!normalized) return `${base}/`;
-  return `${base}/tag/${encodeURIComponent(normalized)}`;
+  return `${base}/#/tag/${encodeURIComponent(normalized)}`;
 }
 
 export function getRouteFromLocation(): LibraryRoute {
