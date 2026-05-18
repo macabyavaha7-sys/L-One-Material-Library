@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AssetItem } from "../types/asset";
 import { getDownloadSource, getPreviewSource } from "../utils/fileName";
 import VideoControls from "./VideoControls";
@@ -35,23 +35,36 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
     }
   }, [isHovered, isPlaying, isMuted, volume]);
 
-  const leavePreview = () => {
+  const enterPreview = () => {
+    setIsHovered(true);
+    if (hoverVideoSource) setIsPlaying(true);
+  };
+
+  const leavePreview = useCallback(() => {
     setIsHovered(false);
     setIsPlaying(false);
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.currentTime = 0;
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isHovered) return;
+    window.addEventListener("blur", leavePreview);
+    window.addEventListener("resize", leavePreview);
+    return () => {
+      window.removeEventListener("blur", leavePreview);
+      window.removeEventListener("resize", leavePreview);
+    };
+  }, [isHovered, leavePreview]);
 
   return (
     <article
       className="asset-card"
-      onMouseEnter={() => {
-        setIsHovered(true);
-        if (asset.video) setIsPlaying(true);
-      }}
-      onMouseLeave={leavePreview}
+      onPointerEnter={enterPreview}
+      onPointerLeave={leavePreview}
+      onPointerCancel={leavePreview}
     >
       <div className="asset-viewport">
         <button
@@ -82,7 +95,6 @@ function AssetCard({ asset, onSelect }: AssetCardProps) {
         </button>
 
         <VideoControls
-          visible={isHovered}
           isPlaying={isPlaying}
           isMuted={isMuted}
           volume={volume}

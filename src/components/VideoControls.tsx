@@ -1,5 +1,4 @@
 type VideoControlsProps = {
-  visible: boolean;
   isPlaying: boolean;
   isMuted: boolean;
   volume: number;
@@ -14,7 +13,6 @@ type VideoControlsProps = {
 };
 
 function VideoControls({
-  visible,
   isPlaying,
   isMuted,
   volume,
@@ -29,7 +27,7 @@ function VideoControls({
 }: VideoControlsProps) {
   return (
     <div
-      className={`video-controls ${visible ? "is-visible" : ""}`}
+      className="video-controls"
       onClick={(event) => event.stopPropagation()}
     >
       <div className="control-group">
