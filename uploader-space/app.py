@@ -16,6 +16,7 @@ from huggingface_hub import HfApi
 
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 DATASET_REPO = os.environ.get("HF_DATASET_REPO", "macabyavaha7/L-One-Material-Library-assets")
+MAIN_SITE_URL = os.environ.get("MAIN_SITE_URL", "https://macabyavaha7-sys.github.io/L-One-Material-Library/")
 MANIFEST_PATH = "data/assets.json"
 MAX_BYTES = 100 * 1024 * 1024
 MAX_DURATION = 30.0
@@ -190,7 +191,7 @@ def create_outputs(source: Path, extension: str, work_dir: Path):
     return original, thumbnail, preview
 
 
-def upload_asset(upload_gate, file, title, category, tags):
+def process_upload_asset(upload_gate, file, title, category, tags):
     source, extension, size, info, category_name = validate_upload(file, category, upload_gate)
     clean_title = (title or source.stem).strip() or source.stem
     digest = hashlib.sha1(f"{source.name}-{source.stat().st_size}-{datetime.now().isoformat()}".encode("utf-8")).hexdigest()[:10]
@@ -248,7 +249,44 @@ def upload_asset(upload_gate, file, title, category, tags):
     )
 
 
-with gr.Blocks(title="L-One 素材库上传") as demo:
+def upload_asset(upload_gate, file, title, category, tags):
+    try:
+        result = process_upload_asset(upload_gate, file, title, category, tags)
+        gr.Info("上传完成")
+        return result
+    except gr.Error:
+        raise
+    except Exception as error:
+        raise gr.Error(f"上传失败：{error}") from error
+
+
+def home_button_html():
+    return (
+        f'<a class="home-link" href="{MAIN_SITE_URL}" target="_blank" rel="noreferrer">'
+        "返回主页"
+        "</a>"
+    )
+
+
+custom_css = """
+.home-link {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #ff6a00;
+  color: #ffffff !important;
+  font-weight: 600;
+  text-decoration: none !important;
+}
+.home-link:hover {
+  background: #f45f00;
+}
+"""
+
+
+with gr.Blocks(title="L-One 素材库上传", css=custom_css) as demo:
     gr.Markdown("# L-One 素材库上传")
     gr.Markdown("视频/GIF 不超过 30 秒，单文件不超过 100MB。系统会自动生成 WebP 缩略图和 WebM hover 预览。")
     upload_gate = gr.Dropdown(
@@ -263,6 +301,7 @@ with gr.Blocks(title="L-One 素材库上传") as demo:
     tags = gr.Textbox(label="标签（可选，用逗号或空格分隔）")
     submit = gr.Button("上传并自动入库", variant="primary")
     output = gr.Textbox(label="处理结果", lines=8)
+    gr.HTML(home_button_html())
 
     submit.click(upload_asset, inputs=[upload_gate, file, title, category, tags], outputs=output)
 

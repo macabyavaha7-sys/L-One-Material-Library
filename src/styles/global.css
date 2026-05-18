@@ -506,6 +506,7 @@ a {
 }
 
 .detail-preview {
+  position: relative;
   display: grid;
   min-height: 420px;
   place-items: center;
@@ -522,6 +523,71 @@ a {
   height: 100%;
   max-height: calc(100vh - 160px);
   object-fit: contain;
+}
+
+.detail-player-controls {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 14px;
+  display: flex;
+  max-width: calc(100% - 28px);
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 14px 34px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(16px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 8px);
+  transition: opacity 200ms var(--ease), transform 200ms var(--ease);
+}
+
+.detail-preview.is-control-visible .detail-player-controls,
+.detail-player-controls:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+
+.detail-control-button {
+  display: inline-flex;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.34);
+  color: #303030;
+  cursor: pointer;
+  transition: background 180ms var(--ease), color 180ms var(--ease);
+}
+
+.detail-control-button:hover {
+  background: rgba(255, 255, 255, 0.78);
+  color: #141414;
+}
+
+.detail-control-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.detail-volume-slider {
+  width: clamp(72px, 10vw, 116px);
+  accent-color: #3d3d3d;
 }
 
 .detail-info {
